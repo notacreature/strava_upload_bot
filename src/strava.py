@@ -43,7 +43,6 @@ async def post_activity(access_token: str, data_type: str, file: bytes) -> str:
     params = {
         "description": "t.me/StravaUploadActivityBot",
         "data_type": data_type,
-        "sport_type": "Run",  # HACK
     }
     headers = {"Authorization": f"Bearer {access_token}"}
     files = {"file": file}
