@@ -4,7 +4,7 @@ TEXT = {
     "key_chgear": "✏ Экипировка",
     "key_chname": "✏ Название",
     "key_chtype": "✏ Тип",
-    "key_openstrava": "Посмотреть в Strava",
+    "key_openstrava": "🔗 Посмотреть в Strava",
     "key_ride": "🚴‍♂️ Ride",
     "key_run": "👟 Run",
     "key_swim": "🏊‍♀️ Swim",
