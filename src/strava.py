@@ -38,12 +38,14 @@ async def get_access_token(user_id: str, client_id: str, client_secret: str, ref
     return access_token
 
 
-async def post_activity(access_token: str, data_type: str, file: bytes) -> str:
+async def post_activity(access_token: str, name: str, data_type: str, file: bytes) -> str:
     url = "https://www.strava.com/api/v3/uploads"
     params = {
         "description": "t.me/StravaUploadActivityBot",
         "data_type": data_type,
     }
+    if name:
+        params.update({"name": name})
     headers = {"Authorization": f"Bearer {access_token}"}
     files = {"file": file}
     response = requests.post(url, params=params, headers=headers, files=files)

@@ -127,6 +127,7 @@ async def upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
+    name = update.message.caption
     file_id = update.message.document.file_id
     file_data = await context.bot.get_file(file_id)
     data_type = str.split(update.message.document.file_name, ".")[-1]
@@ -135,7 +136,7 @@ async def upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     access_token = await strava.get_access_token(user_id, CLIENT_ID, CLIENT_SECRET, refresh_token, USER_DB, USER_QUERY)
     context.user_data["access_token"] = access_token
 
-    upload_id = await strava.post_activity(access_token, data_type, file)
+    upload_id = await strava.post_activity(access_token, name, data_type, file)
     upload = await strava.get_upload(upload_id, access_token, STATUS)
     activity_id = str(upload["activity_id"])
     context.user_data["activity_id"] = activity_id
