@@ -10,7 +10,7 @@ def user_exists(user_id: str, db: TinyDB, query: Query) -> bool:
         return False
 
 
-def get_refresh_token(user_id: str, client_id: str, client_secret: str, code: str) -> str:
+def get_refresh_token(client_id: str, client_secret: str, code: str) -> str:
     url = "https://www.strava.com/api/v3/oauth/token"
     params = {
         "client_id": f"{client_id}",
@@ -41,11 +41,14 @@ async def get_access_token(user_id: str, client_id: str, client_secret: str, ref
 async def post_activity(access_token: str, name: str, data_type: str, file: bytes) -> str:
     url = "https://www.strava.com/api/v3/uploads"
     params = {
-        "description": "t.me/StravaUploadActivityBot",
-        "data_type": data_type,
+        key: value
+        for key, value in (
+            ("name", name),
+            ("description", "t.me/StravaUploadActivityBot"),
+            ("data_type", data_type),
+        )
+        if value is not None
     }
-    if name:
-        params.update({"name": name})
     headers = {"Authorization": f"Bearer {access_token}"}
     files = {"file": file}
     response = requests.post(url, params=params, headers=headers, files=files)
@@ -80,6 +83,20 @@ async def get_activity(access_token: str, activity_id: str) -> str:
     return activity_params
 
 
+async def get_activity_list(access_token: str, per_page: int) -> str:
+    url = "https://www.strava.com/api/v3/athlete/activities"
+    params = {
+        "per_page": per_page,
+    }
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get(url, params=params, headers=headers)
+    list = []
+    list_json = response.json()
+    for activity in list_json:
+        list.append(activity)
+    return list
+
+
 async def get_gear(access_token: str) -> str:
     url = "https://www.strava.com/api/v3/athlete"
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -87,12 +104,12 @@ async def get_gear(access_token: str) -> str:
     gear_list = []
     shoes = response.json()["shoes"]
     bikes = response.json()["bikes"]
-    for i in range(len(shoes)):
-        shoes[i]["type"] = "👟"
-        gear_list.append(shoes[i])
-    for i in range(len(bikes)):
-        bikes[i]["type"] = "🚲"
-        gear_list.append(bikes[i])
+    for gear in shoes:
+        gear["type"] = "👟"
+        gear_list.append(gear)
+    for gear in bikes:
+        gear["type"] = "🚲"
+        gear_list.append(gear)
     return gear_list
 
 

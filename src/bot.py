@@ -1,3 +1,6 @@
+#TODO Выпилить favorites
+#TODO Добавить list с 3 позициями, текст в одну строку с разделителем •
+
 import os, requests, configparser, strava
 from tinydb import TinyDB, Query
 from telegram import (
@@ -116,7 +119,7 @@ async def delete_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-# Публикация активности
+# Публикация тренировки
 async def upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.message.from_user.id)
 
@@ -176,6 +179,7 @@ async def upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
 
+# Редактирование тренировки
 async def chname_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = str(query.from_user.id)
@@ -234,7 +238,7 @@ async def chgear_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gear_list = await strava.get_gear(access_token)
     inline_keys = []
     for gear in gear_list:
-        inline_keys.append([InlineKeyboardButton(gear["type"] + " " + gear["name"], callback_data=gear["id"])])
+        inline_keys.append([InlineKeyboardButton(f"{gear["type"]} {gear["name"]}", callback_data=gear["id"])])
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
     await query.edit_message_text(
         TEXT["reply_chgear"],
