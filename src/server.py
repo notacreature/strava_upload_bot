@@ -39,7 +39,6 @@ class ParamsHTTPRequestHandler(server.SimpleHTTPRequestHandler):
                 {
                     "user_id": user_id,
                     "refresh_token": refresh_token,
-                    "favorites": [],
                 },
                 USER_QUERY["user_id"] == user_id,
             )

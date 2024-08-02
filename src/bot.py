@@ -56,36 +56,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
 
-# /favorites; создание списка избранных названий
-async def favorites_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.message.from_user.id)
-    if not strava.user_exists(user_id, USER_DB, USER_QUERY):
-        await update.message.reply_text(
-            TEXT["reply_unknown"],
-            constants.ParseMode.MARKDOWN,
-        )
-        return ConversationHandler.END
-    else:
-        await update.message.reply_text(
-            TEXT["reply_favorites"],
-            constants.ParseMode.MARKDOWN,
-        )
-        return "favorites_finish"
-
-
-async def favorites_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.message.from_user.id)
-    favorites = update.message.text.split(",")[:3]
-    for fav in favorites:
-        fav.strip()
-    USER_DB.upsert({"favorites": favorites}, USER_QUERY["user_id"] == user_id)
-    await update.message.reply_text(
-        TEXT["reply_done"],
-        constants.ParseMode.MARKDOWN,
-    )
-    return ConversationHandler.END
-
-
 # /delete; удаление данных пользователя из userdata.json
 async def delete_user_data_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.message.from_user.id)
@@ -229,7 +199,7 @@ async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     activity = await strava.get_activity(access_token, activity_id)
     await query.edit_message_text(
-        TEXT["reply_activityupdated"].format(
+        TEXT["reply_activityviews"].format(
             activity["name"], activity["sport_type"], activity["gear"], activity["moving_time"], activity["distance"], activity["description"]
         ),
         constants.ParseMode.MARKDOWN,
@@ -243,18 +213,10 @@ async def change_name_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     user_id = str(query.from_user.id)
     await query.answer()
-    favorites = USER_DB.get(USER_QUERY["user_id"] == user_id)["favorites"]
-    reply_keyboard = ReplyKeyboardMarkup(
-        [favorites],
-        resize_keyboard=True,
-        one_time_keyboard=True,
-        input_field_placeholder=TEXT["placeholder_chname"],
-    )
     await context.bot.send_message(
         user_id,
         TEXT["reply_chname"],
         constants.ParseMode.MARKDOWN,
-        reply_markup=reply_keyboard,
     )
     return "name_change"
 
@@ -468,7 +430,6 @@ def main():
     file_entry = MessageHandler(
         filters.Document.FileExtension("fit") | filters.Document.FileExtension("tcx") | filters.Document.FileExtension("gpx"), upload_activity
     )
-    favorites_entry = CommandHandler("favorites", favorites_start)
     delete_entry = CommandHandler("delete", delete_user_data_dialog)
 
     cancel_fallback = CommandHandler("cancel", cancel)
@@ -502,22 +463,10 @@ def main():
             cancel_fallback,
             list_entry,
             file_entry,
-            favorites_entry,
             delete_entry,
         ],
     )
 
-    favorites_dialog = ConversationHandler(
-        entry_points=[favorites_entry],
-        states={"favorites_finish": [MessageHandler(~filters.COMMAND & filters.TEXT, favorites_finish)]},
-        fallbacks=[
-            cancel_fallback,
-            list_entry,
-            file_entry,
-            favorites_entry,
-            delete_entry,
-        ],
-    )
     delete_dialog = ConversationHandler(
         entry_points=[delete_entry],
         states={"user_data_delete": [CommandHandler("delete", delete_user_data)]},
@@ -525,7 +474,6 @@ def main():
             cancel_fallback,
             list_entry,
             file_entry,
-            favorites_entry,
             delete_entry,
         ],
     )
@@ -533,7 +481,6 @@ def main():
     application.add_handlers(
         [
             activity_dialog,
-            favorites_dialog,
             delete_dialog,
             start_reply,
             help_reply,
