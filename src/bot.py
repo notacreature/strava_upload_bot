@@ -138,7 +138,7 @@ async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     activity = await strava.get_activity(access_token, activity_id)
     await query.edit_message_text(
-        TEXT["reply_activityviews"].format(
+        TEXT["reply_activityview"].format(
             activity["name"], activity["sport_type"], activity["gear"], activity["moving_time"], activity["distance"], activity["description"]
         ),
         constants.ParseMode.MARKDOWN,
