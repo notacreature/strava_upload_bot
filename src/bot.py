@@ -198,16 +198,17 @@ async def view_activity_list(update: Update, context: ContextTypes.DEFAULT_TYPE)
         inline_keys.append([InlineKeyboardButton(f"{date} 🔸 {activity['name']}", callback_data=activity["id"])])
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
     await update.message.reply_text(
-        "вот он список, редактировайте, на здоровье",
+        "TODO ТЕКСТ ДЛЯ СПИСКА",
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
     )
-    return "view_activity"
+    return "activity_list_view"
 
 
 async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     activity_id = update.callback_query.data
+    context.user_data["activity_id"] = activity_id
     access_token = context.user_data["access_token"]
     await query.answer()
 
@@ -296,7 +297,7 @@ async def change_gear_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE)
     gear_list = await strava.get_gear(access_token)
     inline_keys = []
     for gear in gear_list:
-        inline_keys.append([InlineKeyboardButton(f"{gear['name']} {gear['name']}", callback_data=gear["id"])])
+        inline_keys.append([InlineKeyboardButton(f"{gear['type']} {gear['name']}", callback_data=gear["id"])])
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
     await query.edit_message_text(
         TEXT["reply_chgear"],
