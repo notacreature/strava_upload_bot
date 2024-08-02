@@ -1,6 +1,3 @@
-# TODO Выпилить favorites
-# TODO Добавить list с 3 позициями, текст в одну строку с разделителем •
-
 import os, time, requests, configparser, strava
 from tinydb import TinyDB, Query
 from telegram import (
@@ -90,7 +87,7 @@ async def favorites_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # /delete; удаление данных пользователя из userdata.json
-async def delete_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def delete_user_data_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.message.from_user.id)
     if not strava.user_exists(user_id, USER_DB, USER_QUERY):
         await update.message.reply_text(
@@ -103,10 +100,10 @@ async def delete_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             TEXT["reply_delete"],
             constants.ParseMode.MARKDOWN,
         )
-        return "delete_finish"
+        return "user_data_delete"
 
 
-async def delete_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def delete_user_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.message.from_user.id)
     refresh_token = USER_DB.get(USER_QUERY["user_id"] == user_id)["refresh_token"]
     access_token = await strava.get_access_token(user_id, CLIENT_ID, CLIENT_SECRET, refresh_token, USER_DB, USER_QUERY)
@@ -120,7 +117,7 @@ async def delete_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Публикация тренировки
-async def upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.message.from_user.id)
 
     if not strava.user_exists(user_id, USER_DB, USER_QUERY):
@@ -169,7 +166,7 @@ async def upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             constants.ParseMode.MARKDOWN,
             reply_markup=inline_keyboard,
         )
-        return "upload_change"
+        return "activity_view"
     else:
         await update.message.reply_text(
             TEXT["reply_error"].format(status),
@@ -180,7 +177,7 @@ async def upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Список последних тренировок
-async def view_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def view_activity_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.message.from_user.id)
 
     if not strava.user_exists(user_id, USER_DB, USER_QUERY):
@@ -198,7 +195,7 @@ async def view_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     inline_keys = []
     for activity in activity_list:
         date = time.strftime("%a %d.%m.%y %H:%M", (time.strptime(activity["start_date_local"], "%Y-%m-%dT%H:%M:%SZ")))
-        inline_keys.append([InlineKeyboardButton(f"{date} 🔸 {activity["name"]}", callback_data=activity["id"])])
+        inline_keys.append([InlineKeyboardButton(f"{date} 🔸 {activity['name']}", callback_data=activity["id"])])
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
     await update.message.reply_text(
         "вот он список, редактировайте, на здоровье",
@@ -209,7 +206,6 @@ async def view_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("перешло")
     query = update.callback_query
     activity_id = update.callback_query.data
     access_token = context.user_data["access_token"]
@@ -238,11 +234,11 @@ async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
     )
-    return "upload_change"
+    return "activity_view"
 
 
 # Редактирование тренировки
-async def chname_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def change_name_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = str(query.from_user.id)
     await query.answer()
@@ -259,10 +255,10 @@ async def chname_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         constants.ParseMode.MARKDOWN,
         reply_markup=reply_keyboard,
     )
-    return "chname_finish"
+    return "name_change"
 
 
-async def chdesc_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def change_desc_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await context.bot.send_message(
@@ -270,10 +266,10 @@ async def chdesc_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         TEXT["reply_chdesc"],
         constants.ParseMode.MARKDOWN,
     )
-    return "chdesc_finish"
+    return "desc_change"
 
 
-async def chtype_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def change_type_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     inline_keyboard = InlineKeyboardMarkup(
@@ -290,27 +286,27 @@ async def chtype_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
     )
-    return "chtype_finish"
+    return "type_change"
 
 
-async def chgear_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def change_gear_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     access_token = context.user_data["access_token"]
     gear_list = await strava.get_gear(access_token)
     inline_keys = []
     for gear in gear_list:
-        inline_keys.append([InlineKeyboardButton(f"{gear["type"]} {gear["name"]}", callback_data=gear["id"])])
+        inline_keys.append([InlineKeyboardButton(f"{gear['name']} {gear['name']}", callback_data=gear["id"])])
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
     await query.edit_message_text(
         TEXT["reply_chgear"],
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
     )
-    return "chgear_finish"
+    return "gear_change"
 
 
-async def chname_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.message.text
     access_token = context.user_data["access_token"]
     activity_id = context.user_data["activity_id"]
@@ -338,10 +334,10 @@ async def chname_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
     )
-    return "upload_change"
+    return "activity_view"
 
 
-async def chdesc_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def change_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     description = update.message.text
     access_token = context.user_data["access_token"]
     activity_id = context.user_data["activity_id"]
@@ -369,10 +365,10 @@ async def chdesc_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
     )
-    return "upload_change"
+    return "activity_view"
 
 
-async def chtype_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def change_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     sport_type = update.callback_query.data
     access_token = context.user_data["access_token"]
@@ -401,10 +397,10 @@ async def chtype_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
     )
-    return "upload_change"
+    return "activity_view"
 
 
-async def chgear_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def change_gear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     gear_id = update.callback_query.data
     access_token = context.user_data["access_token"]
@@ -433,7 +429,7 @@ async def chgear_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
     )
-    return "upload_change"
+    return "activity_view"
 
 
 # /help; справка
@@ -467,56 +463,75 @@ async def other(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     application = ApplicationBuilder().token(TOKEN).build()
 
-    cancel_fallback = CommandHandler("cancel", cancel)
+    list_entry = CommandHandler("list", view_activity_list)
     file_entry = MessageHandler(
-        filters.Document.FileExtension("fit") | filters.Document.FileExtension("tcx") | filters.Document.FileExtension("gpx"), upload_start
+        filters.Document.FileExtension("fit") | filters.Document.FileExtension("tcx") | filters.Document.FileExtension("gpx"), upload_activity
     )
     favorites_entry = CommandHandler("favorites", favorites_start)
-    delete_entry = CommandHandler("delete", delete_start)
+    delete_entry = CommandHandler("delete", delete_user_data_dialog)
 
-    list_entry = CommandHandler("list", view_list)
-    list_dialog = ConversationHandler(
-        entry_points=[list_entry],
-        states={"view_activity": [CallbackQueryHandler(view_activity, pattern="^\d+$")]},
-        fallbacks=[cancel_fallback, file_entry, favorites_entry, delete_entry],
-    )
+    cancel_fallback = CommandHandler("cancel", cancel)
 
     start_reply = CommandHandler("start", start)
     help_reply = CommandHandler("help", help)
     other_reply = MessageHandler(
         ~filters.COMMAND & ~filters.Document.FileExtension("fit") & ~filters.Document.FileExtension("tcx") & ~filters.Document.FileExtension("gpx"), other
     )
-    upload_dialog = ConversationHandler(
-        entry_points=[file_entry],
+
+    activity_dialog = ConversationHandler(
+        entry_points=[
+            list_entry,
+            file_entry,
+        ],
         states={
-            "upload_change": [
-                CallbackQueryHandler(chname_start, pattern="chname"),
-                CallbackQueryHandler(chdesc_start, pattern="chdesc"),
-                CallbackQueryHandler(chtype_start, pattern="chtype"),
-                CallbackQueryHandler(chgear_start, pattern="chgear"),
+            "activity_list_view": [CallbackQueryHandler(view_activity, pattern="^\d+$")],
+            "activity_view": [
+                # Еще один обработчик для возвращения к списку
+                CallbackQueryHandler(change_name_dialog, pattern="chname"),
+                CallbackQueryHandler(change_desc_dialog, pattern="chdesc"),
+                CallbackQueryHandler(change_type_dialog, pattern="chtype"),
+                CallbackQueryHandler(change_gear_dialog, pattern="chgear"),
             ],
-            "chname_finish": [MessageHandler(~filters.COMMAND & filters.TEXT, chname_finish)],
-            "chdesc_finish": [MessageHandler(~filters.COMMAND & filters.TEXT, chdesc_finish)],
-            "chtype_finish": [CallbackQueryHandler(chtype_finish, pattern="Swim|Ride|Run")],
-            "chgear_finish": [CallbackQueryHandler(chgear_finish, pattern="^\w\d+$")],
+            "name_change": [MessageHandler(~filters.COMMAND & filters.TEXT, change_name)],
+            "desc_change": [MessageHandler(~filters.COMMAND & filters.TEXT, change_desc)],
+            "type_change": [CallbackQueryHandler(change_type, pattern="Swim|Ride|Run")],
+            "gear_change": [CallbackQueryHandler(change_gear, pattern="^\w\d+$")],
         },
-        fallbacks=[cancel_fallback, file_entry, favorites_entry, delete_entry],
+        fallbacks=[
+            cancel_fallback,
+            list_entry,
+            file_entry,
+            favorites_entry,
+            delete_entry,
+        ],
     )
+
     favorites_dialog = ConversationHandler(
         entry_points=[favorites_entry],
         states={"favorites_finish": [MessageHandler(~filters.COMMAND & filters.TEXT, favorites_finish)]},
-        fallbacks=[cancel_fallback, file_entry, favorites_entry, delete_entry],
+        fallbacks=[
+            cancel_fallback,
+            list_entry,
+            file_entry,
+            favorites_entry,
+            delete_entry,
+        ],
     )
     delete_dialog = ConversationHandler(
         entry_points=[delete_entry],
-        states={"delete_finish": [CommandHandler("delete", delete_finish)]},
-        fallbacks=[cancel_fallback, file_entry, favorites_entry, delete_entry],
+        states={"user_data_delete": [CommandHandler("delete", delete_user_data)]},
+        fallbacks=[
+            cancel_fallback,
+            list_entry,
+            file_entry,
+            favorites_entry,
+            delete_entry,
+        ],
     )
 
     application.add_handlers(
         [
-            list_dialog,
-            upload_dialog,
+            activity_dialog,
             favorites_dialog,
             delete_dialog,
             start_reply,
