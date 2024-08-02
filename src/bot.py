@@ -1,7 +1,7 @@
-#TODO Выпилить favorites
-#TODO Добавить list с 3 позициями, текст в одну строку с разделителем •
+# TODO Выпилить favorites
+# TODO Добавить list с 3 позициями, текст в одну строку с разделителем •
 
-import os, requests, configparser, strava
+import os, time, requests, configparser, strava
 from tinydb import TinyDB, Query
 from telegram import (
     Update,
@@ -177,6 +177,68 @@ async def upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=ReplyKeyboardRemove(),
         )
         return ConversationHandler.END
+
+
+# Список последних тренировок
+async def view_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.message.from_user.id)
+
+    if not strava.user_exists(user_id, USER_DB, USER_QUERY):
+        await update.message.reply_text(
+            TEXT["reply_unknown"],
+            constants.ParseMode.MARKDOWN,
+        )
+        return ConversationHandler.END
+
+    refresh_token = USER_DB.get(USER_QUERY["user_id"] == user_id)["refresh_token"]
+    access_token = await strava.get_access_token(user_id, CLIENT_ID, CLIENT_SECRET, refresh_token, USER_DB, USER_QUERY)
+    context.user_data["access_token"] = access_token
+
+    activity_list = await strava.get_activity_list(access_token, 3)
+    inline_keys = []
+    for activity in activity_list:
+        date = time.strftime("%a %d.%m.%y %H:%M", (time.strptime(activity["start_date_local"], "%Y-%m-%dT%H:%M:%SZ")))
+        inline_keys.append([InlineKeyboardButton(f"{date} 🔸 {activity["name"]}", callback_data=activity["id"])])
+    inline_keyboard = InlineKeyboardMarkup(inline_keys)
+    await update.message.reply_text(
+        "вот он список, редактировайте, на здоровье",
+        constants.ParseMode.MARKDOWN,
+        reply_markup=inline_keyboard,
+    )
+    return "view_activity"
+
+
+async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("перешло")
+    query = update.callback_query
+    activity_id = update.callback_query.data
+    access_token = context.user_data["access_token"]
+    await query.answer()
+
+    inline_keyboard = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(TEXT["key_chname"], callback_data="chname"),
+                InlineKeyboardButton(TEXT["key_chdesc"], callback_data="chdesc"),
+            ],
+            [
+                InlineKeyboardButton(TEXT["key_chtype"], callback_data="chtype"),
+                InlineKeyboardButton(TEXT["key_chgear"], callback_data="chgear"),
+            ],
+            [
+                InlineKeyboardButton(TEXT["key_openstrava"], url=URL["activity"].format(activity_id)),
+            ],
+        ]
+    )
+    activity = await strava.get_activity(access_token, activity_id)
+    await query.edit_message_text(
+        TEXT["reply_activityupdated"].format(
+            activity["name"], activity["sport_type"], activity["gear"], activity["moving_time"], activity["distance"], activity["description"]
+        ),
+        constants.ParseMode.MARKDOWN,
+        reply_markup=inline_keyboard,
+    )
+    return "upload_change"
 
 
 # Редактирование тренировки
@@ -412,6 +474,13 @@ def main():
     favorites_entry = CommandHandler("favorites", favorites_start)
     delete_entry = CommandHandler("delete", delete_start)
 
+    list_entry = CommandHandler("list", view_list)
+    list_dialog = ConversationHandler(
+        entry_points=[list_entry],
+        states={"view_activity": [CallbackQueryHandler(view_activity, pattern="^\d+$")]},
+        fallbacks=[cancel_fallback, file_entry, favorites_entry, delete_entry],
+    )
+
     start_reply = CommandHandler("start", start)
     help_reply = CommandHandler("help", help)
     other_reply = MessageHandler(
@@ -446,6 +515,7 @@ def main():
 
     application.add_handlers(
         [
+            list_dialog,
             upload_dialog,
             favorites_dialog,
             delete_dialog,

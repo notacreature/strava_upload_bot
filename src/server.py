@@ -34,7 +34,7 @@ class ParamsHTTPRequestHandler(server.SimpleHTTPRequestHandler):
 
         # Проверка выданных в Strava прав и создание пользователя
         if SCOPE in str(incoming_params["scope"]):
-            refresh_token = strava.get_refresh_token(user_id, CLIENT_ID, CLIENT_SECRET, code)
+            refresh_token = strava.get_refresh_token(CLIENT_ID, CLIENT_SECRET, code)
             USER_DB.upsert(
                 {
                     "user_id": user_id,
