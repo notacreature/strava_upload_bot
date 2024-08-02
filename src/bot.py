@@ -5,7 +5,6 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     ReplyKeyboardMarkup,
-    ReplyKeyboardRemove,
     constants,
 )
 from telegram.ext import (
@@ -86,66 +85,6 @@ async def delete_user_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-# Публикация тренировки
-async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.message.from_user.id)
-
-    if not strava.user_exists(user_id, USER_DB, USER_QUERY):
-        await update.message.reply_text(
-            TEXT["reply_unknown"],
-            constants.ParseMode.MARKDOWN,
-        )
-        return ConversationHandler.END
-
-    name = update.message.caption
-    file_id = update.message.document.file_id
-    file_data = await context.bot.get_file(file_id)
-    data_type = str.split(update.message.document.file_name, ".")[-1]
-    file = requests.get(file_data.file_path).content
-    refresh_token = USER_DB.get(USER_QUERY["user_id"] == user_id)["refresh_token"]
-    access_token = await strava.get_access_token(user_id, CLIENT_ID, CLIENT_SECRET, refresh_token, USER_DB, USER_QUERY)
-    context.user_data["access_token"] = access_token
-
-    upload_id = await strava.post_activity(access_token, name, data_type, file)
-    upload = await strava.get_upload(upload_id, access_token, STATUS)
-    activity_id = str(upload["activity_id"])
-    context.user_data["activity_id"] = activity_id
-    status = str(upload["status"])
-
-    if status == STATUS["ready"]:
-        inline_keyboard = InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton(TEXT["key_chname"], callback_data="chname"),
-                    InlineKeyboardButton(TEXT["key_chdesc"], callback_data="chdesc"),
-                ],
-                [
-                    InlineKeyboardButton(TEXT["key_chtype"], callback_data="chtype"),
-                    InlineKeyboardButton(TEXT["key_chgear"], callback_data="chgear"),
-                ],
-                [
-                    InlineKeyboardButton(TEXT["key_openstrava"], url=URL["activity"].format(activity_id)),
-                ],
-            ]
-        )
-        activity = await strava.get_activity(access_token, activity_id)
-        await update.message.reply_text(
-            TEXT["reply_activityuploaded"].format(
-                activity["name"], activity["sport_type"], activity["gear"], activity["moving_time"], activity["distance"], activity["description"]
-            ),
-            constants.ParseMode.MARKDOWN,
-            reply_markup=inline_keyboard,
-        )
-        return "activity_view"
-    else:
-        await update.message.reply_text(
-            TEXT["reply_error"].format(status),
-            constants.ParseMode.MARKDOWN,
-            reply_markup=ReplyKeyboardRemove(),
-        )
-        return ConversationHandler.END
-
-
 # Список последних тренировок
 async def view_activity_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.message.from_user.id)
@@ -206,6 +145,65 @@ async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=inline_keyboard,
     )
     return "activity_view"
+
+
+# Публикация тренировки
+async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.message.from_user.id)
+
+    if not strava.user_exists(user_id, USER_DB, USER_QUERY):
+        await update.message.reply_text(
+            TEXT["reply_unknown"],
+            constants.ParseMode.MARKDOWN,
+        )
+        return ConversationHandler.END
+
+    name = update.message.caption
+    file_id = update.message.document.file_id
+    file_data = await context.bot.get_file(file_id)
+    data_type = str.split(update.message.document.file_name, ".")[-1]
+    file = requests.get(file_data.file_path).content
+    refresh_token = USER_DB.get(USER_QUERY["user_id"] == user_id)["refresh_token"]
+    access_token = await strava.get_access_token(user_id, CLIENT_ID, CLIENT_SECRET, refresh_token, USER_DB, USER_QUERY)
+    context.user_data["access_token"] = access_token
+
+    upload_id = await strava.post_activity(access_token, name, data_type, file)
+    upload = await strava.get_upload(upload_id, access_token, STATUS)
+    activity_id = str(upload["activity_id"])
+    context.user_data["activity_id"] = activity_id
+    status = str(upload["status"])
+
+    if status == STATUS["ready"]:
+        inline_keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(TEXT["key_chname"], callback_data="chname"),
+                    InlineKeyboardButton(TEXT["key_chdesc"], callback_data="chdesc"),
+                ],
+                [
+                    InlineKeyboardButton(TEXT["key_chtype"], callback_data="chtype"),
+                    InlineKeyboardButton(TEXT["key_chgear"], callback_data="chgear"),
+                ],
+                [
+                    InlineKeyboardButton(TEXT["key_openstrava"], url=URL["activity"].format(activity_id)),
+                ],
+            ]
+        )
+        activity = await strava.get_activity(access_token, activity_id)
+        await update.message.reply_text(
+            TEXT["reply_activityuploaded"].format(
+                activity["name"], activity["sport_type"], activity["gear"], activity["moving_time"], activity["distance"], activity["description"]
+            ),
+            constants.ParseMode.MARKDOWN,
+            reply_markup=inline_keyboard,
+        )
+        return "activity_view"
+    else:
+        await update.message.reply_text(
+            TEXT["reply_error"].format(status),
+            constants.ParseMode.MARKDOWN,
+        )
+        return ConversationHandler.END
 
 
 # Редактирование тренировки
@@ -409,7 +407,6 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         TEXT["reply_canceled"],
         constants.ParseMode.MARKDOWN,
-        reply_markup=ReplyKeyboardRemove(),
     )
     return ConversationHandler.END
 
@@ -426,14 +423,12 @@ async def other(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     application = ApplicationBuilder().token(TOKEN).build()
 
+    delete_entry = CommandHandler("delete", delete_user_data_dialog)
     list_entry = CommandHandler("list", view_activity_list)
     file_entry = MessageHandler(
         filters.Document.FileExtension("fit") | filters.Document.FileExtension("tcx") | filters.Document.FileExtension("gpx"), upload_activity
     )
-    delete_entry = CommandHandler("delete", delete_user_data_dialog)
-
     cancel_fallback = CommandHandler("cancel", cancel)
-
     start_reply = CommandHandler("start", start)
     help_reply = CommandHandler("help", help)
     other_reply = MessageHandler(
