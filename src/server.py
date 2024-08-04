@@ -25,8 +25,8 @@ class ParamsHTTPRequestHandler(server.SimpleHTTPRequestHandler):
             for pair in query.split("&"):
                 key, value = pair.split("=", 1)
                 incoming_params[key] = value
-        user_id = str(incoming_params["user_id"])
         code = str(incoming_params["code"])
+        user_id = str(incoming_params["user_id"])
 
         self.send_response(301)
         self.send_header("Location", BOT_URL)

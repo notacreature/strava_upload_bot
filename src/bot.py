@@ -1,12 +1,9 @@
-# TODO: нормализовать список activity в функции
-
 import os, time, requests, configparser, strava
 from tinydb import TinyDB, Query
 from telegram import (
     Update,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
-    ReplyKeyboardMarkup,
     constants,
 )
 from telegram.ext import (
@@ -175,14 +172,13 @@ async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
-    name = update.message.caption
-    file_id = update.message.document.file_id
-    file_data = await context.bot.get_file(file_id)
-    data_type = str.split(update.message.document.file_name, ".")[-1]
-    file = requests.get(file_data.file_path).content
     refresh_token = USER_DB.get(USER_QUERY["user_id"] == user_id)["refresh_token"]
     access_token = await strava.get_access_token(user_id, CLIENT_ID, CLIENT_SECRET, refresh_token, USER_DB, USER_QUERY)
     context.user_data["access_token"] = access_token
+    name = update.message.caption
+    data_type = str.split(update.message.document.file_name, ".")[-1]
+    file_data = await context.bot.get_file(update.message.document.file_id)
+    file = requests.get(file_data.file_path).content
 
     upload_id = await strava.post_activity(access_token, name, data_type, file)
     upload = await strava.get_upload(upload_id, access_token, STATUS)
@@ -230,7 +226,6 @@ async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def change_name_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     user_id = str(update.callback_query.from_user.id)
-
     await context.bot.send_message(
         user_id,
         TEXT["reply_chname"],
@@ -242,7 +237,6 @@ async def change_name_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def change_desc_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     user_id = str(update.callback_query.from_user.id)
-
     await context.bot.send_message(
         user_id,
         TEXT["reply_chdesc"],
@@ -287,9 +281,9 @@ async def change_gear_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    name = update.message.text
     access_token = context.user_data["access_token"]
     activity_id = context.user_data["activity_id"]
+    name = update.message.text
     activity = await strava.update_activity(access_token, activity_id, name=name)
 
     inline_keyboard = InlineKeyboardMarkup(
@@ -321,9 +315,9 @@ async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def change_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    description = update.message.text
     access_token = context.user_data["access_token"]
     activity_id = context.user_data["activity_id"]
+    description = update.message.text
     activity = await strava.update_activity(access_token, activity_id, description=description)
 
     inline_keyboard = InlineKeyboardMarkup(
@@ -356,9 +350,9 @@ async def change_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def change_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
-    sport_type = update.callback_query.data
     access_token = context.user_data["access_token"]
     activity_id = context.user_data["activity_id"]
+    sport_type = update.callback_query.data
     activity = await strava.update_activity(access_token, activity_id, sport_type=sport_type)
 
     inline_keyboard = InlineKeyboardMarkup(
@@ -391,9 +385,9 @@ async def change_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def change_gear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
-    gear_id = update.callback_query.data
     access_token = context.user_data["access_token"]
     activity_id = context.user_data["activity_id"]
+    gear_id = update.callback_query.data
     activity = await strava.update_activity(access_token, activity_id, gear_id=gear_id)
 
     inline_keyboard = InlineKeyboardMarkup(
