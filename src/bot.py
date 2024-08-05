@@ -450,11 +450,15 @@ def main():
 
     delete_entry = CommandHandler("delete", delete_user_data_dialog)
     list_entry = CommandHandler("list", view_activity_list)
-    file_entry = MessageHandler(filters.Document.FileExtension("gpx") | filters.Document.FileExtension("tcx"), upload_activity)
+    file_entry = MessageHandler(
+        filters.Document.FileExtension("fit") | filters.Document.FileExtension("tcx") | filters.Document.FileExtension("gpx"), upload_activity
+    )
     cancel_fallback = CommandHandler("cancel", cancel)
     start_reply = CommandHandler("start", start)
     help_reply = CommandHandler("help", help)
-    other_reply = MessageHandler(~filters.COMMAND & ~filters.Document.FileExtension("gpx") & ~filters.Document.FileExtension("tcx"), other)
+    other_reply = MessageHandler(
+        ~filters.COMMAND & ~filters.Document.FileExtension("fit") & ~filters.Document.FileExtension("tcx") & ~filters.Document.FileExtension("gpx"), other
+    )
 
     activity_dialog = ConversationHandler(
         entry_points=[
