@@ -189,12 +189,11 @@ async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data_type = str.split(update.message.document.file_name, ".")[-1]
     file_data = await context.bot.get_file(update.message.document.file_id)
     file = requests.get(file_data.file_path).content
-
     upload_id = await strava.post_activity(access_token, name, data_type, file)
     upload = await strava.get_upload(upload_id, access_token)
+
     activity_id = upload["activity_id"]
     context.user_data["activity_id"] = activity_id
-
     if activity_id:
         activity = await strava.get_activity(access_token, activity_id)
 
