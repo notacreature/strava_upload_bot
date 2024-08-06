@@ -1,4 +1,4 @@
-import os, time, requests, configparser, strava
+import os, requests, configparser, strava
 from tinydb import TinyDB, Query
 from telegram import (
     Update,
@@ -15,7 +15,7 @@ from telegram.ext import (
     ConversationHandler,
     filters,
 )
-from dictionary import TEXT, URL, STATUS
+from dictionary import TEXT, URL
 
 CONFIG = configparser.ConfigParser()
 CONFIG.read(os.path.join(os.path.dirname(__file__), "..", "settings.ini"))
@@ -78,7 +78,7 @@ async def delete_user_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await strava.deauthorize(access_token)
     USER_DB.remove(USER_QUERY["user_id"] == user_id)
     await update.message.reply_text(
-        TEXT["reply_done"],
+        TEXT["reply_deleted"],
         constants.ParseMode.MARKDOWN,
     )
     return ConversationHandler.END
@@ -106,8 +106,11 @@ async def view_activity_list(update: Update, context: ContextTypes.DEFAULT_TYPE)
     activity_list = await strava.get_activity_list(access_token, 3)
     inline_keys = []
     for activity in activity_list:
-        date = time.strftime("%a %d.%m.%y %H:%M", (time.strptime(activity["start_date_local"], "%Y-%m-%dT%H:%M:%SZ")))
-        inline_keys.append([InlineKeyboardButton(f"{activity['name']} 🔸 {date}", callback_data=activity["id"])])
+        inline_keys.append(
+            [
+                InlineKeyboardButton(TEXT["key_activity"].format(activity["name"], activity["date"]), callback_data=activity["id"]),
+            ]
+        )
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
 
     if update.message:
@@ -153,7 +156,7 @@ async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     activity = await strava.get_activity(access_token, activity_id)
     await update.callback_query.edit_message_text(
         TEXT["reply_activityview"].format(
-            activity["name"], activity["sport_type"], activity["gear"], activity["moving_time"], activity["distance"], activity["description"]
+            activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
         ),
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
@@ -181,12 +184,11 @@ async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file = requests.get(file_data.file_path).content
 
     upload_id = await strava.post_activity(access_token, name, data_type, file)
-    upload = await strava.get_upload(upload_id, access_token, STATUS)
-    activity_id = str(upload["activity_id"])
+    upload = await strava.get_upload(upload_id, access_token)
+    activity_id = upload["activity_id"]
     context.user_data["activity_id"] = activity_id
-    status = str(upload["status"])
 
-    if status == STATUS["ready"]:
+    if activity_id:
         inline_keyboard = InlineKeyboardMarkup(
             [
                 [
@@ -208,7 +210,7 @@ async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
         activity = await strava.get_activity(access_token, activity_id)
         await update.message.reply_text(
             TEXT["reply_activityuploaded"].format(
-                activity["name"], activity["sport_type"], activity["gear"], activity["moving_time"], activity["distance"], activity["description"]
+                activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
             ),
             constants.ParseMode.MARKDOWN,
             reply_markup=inline_keyboard,
@@ -216,7 +218,7 @@ async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return "activity_view"
     else:
         await update.message.reply_text(
-            TEXT["reply_error"].format(status),
+            TEXT["reply_error"].format(str(upload["error"])),
             constants.ParseMode.MARKDOWN,
         )
         return ConversationHandler.END
@@ -270,7 +272,11 @@ async def change_gear_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE)
     gear_list = await strava.get_gear(access_token)
     inline_keys = []
     for gear in gear_list:
-        inline_keys.append([InlineKeyboardButton(f"{gear['type']} {gear['name']}", callback_data=gear["id"])])
+        inline_keys.append(
+            [
+                InlineKeyboardButton(f"{gear['type']} {gear['name']}", callback_data=gear["id"]),
+            ]
+        )
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
     await update.callback_query.edit_message_text(
         TEXT["reply_chgear"],
@@ -284,8 +290,9 @@ async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     access_token = context.user_data["access_token"]
     activity_id = context.user_data["activity_id"]
     name = update.message.text
-    activity = await strava.update_activity(access_token, activity_id, name=name)
+    await strava.update_activity(access_token, activity_id, name=name)
 
+    activity = await strava.get_activity(access_token, activity_id)
     inline_keyboard = InlineKeyboardMarkup(
         [
             [
@@ -306,7 +313,7 @@ async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(
         TEXT["reply_activityupdated"].format(
-            activity["name"], activity["sport_type"], activity["gear"], activity["moving_time"], activity["distance"], activity["description"]
+            activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
         ),
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
@@ -318,8 +325,9 @@ async def change_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     access_token = context.user_data["access_token"]
     activity_id = context.user_data["activity_id"]
     description = update.message.text
-    activity = await strava.update_activity(access_token, activity_id, description=description)
+    await strava.update_activity(access_token, activity_id, description=description)
 
+    activity = await strava.get_activity(access_token, activity_id)
     inline_keyboard = InlineKeyboardMarkup(
         [
             [
@@ -340,7 +348,7 @@ async def change_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(
         TEXT["reply_activityupdated"].format(
-            activity["name"], activity["sport_type"], activity["gear"], activity["moving_time"], activity["distance"], activity["description"]
+            activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
         ),
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
@@ -353,8 +361,9 @@ async def change_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     access_token = context.user_data["access_token"]
     activity_id = context.user_data["activity_id"]
     sport_type = update.callback_query.data
-    activity = await strava.update_activity(access_token, activity_id, sport_type=sport_type)
+    await strava.update_activity(access_token, activity_id, sport_type=sport_type)
 
+    activity = await strava.get_activity(access_token, activity_id)
     inline_keyboard = InlineKeyboardMarkup(
         [
             [
@@ -375,7 +384,7 @@ async def change_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.callback_query.edit_message_text(
         TEXT["reply_activityupdated"].format(
-            activity["name"], activity["sport_type"], activity["gear"], activity["moving_time"], activity["distance"], activity["description"]
+            activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
         ),
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
@@ -388,8 +397,9 @@ async def change_gear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     access_token = context.user_data["access_token"]
     activity_id = context.user_data["activity_id"]
     gear_id = update.callback_query.data
-    activity = await strava.update_activity(access_token, activity_id, gear_id=gear_id)
+    await strava.update_activity(access_token, activity_id, gear_id=gear_id)
 
+    activity = await strava.get_activity(access_token, activity_id)
     inline_keyboard = InlineKeyboardMarkup(
         [
             [
@@ -410,7 +420,7 @@ async def change_gear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.callback_query.edit_message_text(
         TEXT["reply_activityupdated"].format(
-            activity["name"], activity["sport_type"], activity["gear"], activity["moving_time"], activity["distance"], activity["description"]
+            activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
         ),
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
@@ -466,7 +476,7 @@ def main():
             file_entry,
         ],
         states={
-            "activity_list_view": [CallbackQueryHandler(view_activity, pattern="^\d+$")],
+            "activity_list_view": [CallbackQueryHandler(view_activity, pattern="^\\d+$")],
             "activity_view": [
                 CallbackQueryHandler(view_activity_list, pattern="list"),
                 CallbackQueryHandler(change_name_dialog, pattern="chname"),
@@ -477,7 +487,7 @@ def main():
             "name_change": [MessageHandler(~filters.COMMAND & filters.TEXT, change_name)],
             "desc_change": [MessageHandler(~filters.COMMAND & filters.TEXT, change_desc)],
             "type_change": [CallbackQueryHandler(change_type, pattern="Swim|Ride|Run")],
-            "gear_change": [CallbackQueryHandler(change_gear, pattern="^\w\d+$")],
+            "gear_change": [CallbackQueryHandler(change_gear, pattern="^\\w\\d+$")],
         },
         fallbacks=[
             cancel_fallback,
