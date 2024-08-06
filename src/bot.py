@@ -170,7 +170,7 @@ async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.edit_message_text(
         ActivityPrint(TEXT, activity),
         constants.ParseMode.MARKDOWN,
-        ActivityKeyboardMarkup(TEXT, URL, activity_id),
+        reply_markup=ActivityKeyboardMarkup(TEXT, URL, activity_id),
     )
     return "activity_view"
 
@@ -205,7 +205,7 @@ async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             ActivityPrint(TEXT, activity),
             constants.ParseMode.MARKDOWN,
-            ActivityKeyboardMarkup(TEXT, URL, activity_id),
+            reply_markup=ActivityKeyboardMarkup(TEXT, URL, activity_id),
         )
         return "activity_view"
     else:
@@ -288,7 +288,7 @@ async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         ActivityPrint(TEXT, activity),
         constants.ParseMode.MARKDOWN,
-        ActivityKeyboardMarkup(TEXT, URL, activity_id),
+        reply_markup=ActivityKeyboardMarkup(TEXT, URL, activity_id),
     )
     return "activity_view"
 
@@ -303,7 +303,7 @@ async def change_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         ActivityPrint(TEXT, activity),
         constants.ParseMode.MARKDOWN,
-        ActivityKeyboardMarkup(TEXT, URL, activity_id),
+        reply_markup=ActivityKeyboardMarkup(TEXT, URL, activity_id),
     )
     return "activity_view"
 
@@ -319,7 +319,7 @@ async def change_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.edit_message_text(
         ActivityPrint(TEXT, activity),
         constants.ParseMode.MARKDOWN,
-        ActivityKeyboardMarkup(TEXT, URL, activity_id),
+        reply_markup=ActivityKeyboardMarkup(TEXT, URL, activity_id),
     )
     return "activity_view"
 
@@ -332,11 +332,10 @@ async def change_gear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await strava.update_activity(access_token, activity_id, gear_id=gear_id)
     activity = await strava.get_activity(access_token, activity_id)
 
-    inline_keyboard = ActivityKeyboardMarkup(TEXT, URL, activity_id)
     await update.callback_query.edit_message_text(
         ActivityPrint(TEXT, activity),
         constants.ParseMode.MARKDOWN,
-        ActivityKeyboardMarkup(TEXT, URL, activity_id),
+        reply_markup=ActivityKeyboardMarkup(TEXT, URL, activity_id),
     )
     return "activity_view"
 
