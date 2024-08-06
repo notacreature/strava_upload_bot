@@ -73,14 +73,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             TEXT["reply_start"],
             constants.ParseMode.MARKDOWN,
-            inline_keyboard,
+            reply_markup=inline_keyboard,
         )
         return ConversationHandler.END
     else:
         await update.message.reply_text(
             TEXT["reply_restart"],
             constants.ParseMode.MARKDOWN,
-            inline_keyboard,
+            reply_markup=inline_keyboard,
         )
         return ConversationHandler.END
 
@@ -148,13 +148,13 @@ async def view_activity_list(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text(
             TEXT["reply_listview"],
             constants.ParseMode.MARKDOWN,
-            inline_keyboard,
+            reply_markup=inline_keyboard,
         )
     elif update.callback_query:
         await update.callback_query.edit_message_text(
             TEXT["reply_listview"],
             constants.ParseMode.MARKDOWN,
-            inline_keyboard,
+            reply_markup=inline_keyboard,
         )
 
     return "activity_list_view"
@@ -253,7 +253,7 @@ async def change_type_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update.callback_query.edit_message_text(
         TEXT["reply_chtype"],
         constants.ParseMode.MARKDOWN,
-        inline_keyboard,
+        reply_markup=inline_keyboard,
     )
     return "type_change"
 
@@ -273,7 +273,7 @@ async def change_gear_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update.callback_query.edit_message_text(
         TEXT["reply_chgear"],
         constants.ParseMode.MARKDOWN,
-        inline_keyboard,
+        reply_markup=inline_keyboard,
     )
     return "gear_change"
 
