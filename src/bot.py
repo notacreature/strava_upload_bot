@@ -30,16 +30,16 @@ USER_QUERY = Query()
 
 class ActivityFormatter:
     @staticmethod
-    def format_data(format: str, activity: dict) -> str:
-        return format.format(activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"])
+    def format_data(format: str, url: str, activity: dict) -> str:
+        activity_link = url.format(activity["id"])
+        return format.format(
+            activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"], activity_link
+        )
 
     @staticmethod
-    def format_keyboard(keys: dict, urls: dict, activity_id: str) -> InlineKeyboardMarkup:
+    def format_keyboard(keys: dict) -> InlineKeyboardMarkup:
         return InlineKeyboardMarkup(
             [
-                [
-                    InlineKeyboardButton(keys["key_list"], callback_data="list"),
-                ],
                 [
                     InlineKeyboardButton(keys["key_chname"], callback_data="chname"),
                     InlineKeyboardButton(keys["key_chdesc"], callback_data="chdesc"),
@@ -49,7 +49,7 @@ class ActivityFormatter:
                     InlineKeyboardButton(keys["key_chgear"], callback_data="chgear"),
                 ],
                 [
-                    InlineKeyboardButton(keys["key_open_strava"], urls["activity"].format(activity_id)),
+                    InlineKeyboardButton(keys["key_list"], callback_data="list"),
                 ],
             ]
         )
@@ -164,9 +164,9 @@ async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     activity = await strava.get_activity(access_token, activity_id)
 
     await update.callback_query.edit_message_text(
-        ActivityFormatter.format_data(TEXT["reply_activity_view"], activity),
+        ActivityFormatter.format_data(TEXT["reply_activity_view"], URL["activity"], activity),
         constants.ParseMode.MARKDOWN,
-        reply_markup=ActivityFormatter.format_keyboard(TEXT, URL, activity_id),
+        reply_markup=ActivityFormatter.format_keyboard(TEXT),
     )
     return "activity_view"
 
@@ -199,9 +199,9 @@ async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
         activity = await strava.get_activity(access_token, activity_id)
 
         await update.message.reply_text(
-            ActivityFormatter.format_data(TEXT["reply_activity_uploaded"], activity),
+            ActivityFormatter.format_data(TEXT["reply_activity_uploaded"], URL["activity"], activity),
             constants.ParseMode.MARKDOWN,
-            reply_markup=ActivityFormatter.format_keyboard(TEXT, URL, activity_id),
+            reply_markup=ActivityFormatter.format_keyboard(TEXT),
         )
         return "activity_view"
     else:
@@ -282,9 +282,9 @@ async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     activity = await strava.get_activity(access_token, activity_id)
 
     await update.message.reply_text(
-        ActivityFormatter.format_data(TEXT["reply_activity_updated"], activity),
+        ActivityFormatter.format_data(TEXT["reply_activity_updated"], URL["activity"], activity),
         constants.ParseMode.MARKDOWN,
-        reply_markup=ActivityFormatter.format_keyboard(TEXT, URL, activity_id),
+        reply_markup=ActivityFormatter.format_keyboard(TEXT),
     )
     return "activity_view"
 
@@ -297,9 +297,9 @@ async def change_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     activity = await strava.get_activity(access_token, activity_id)
 
     await update.message.reply_text(
-        ActivityFormatter.format_data(TEXT["reply_activity_updated"], activity),
+        ActivityFormatter.format_data(TEXT["reply_activity_updated"], URL["activity"], activity),
         constants.ParseMode.MARKDOWN,
-        reply_markup=ActivityFormatter.format_keyboard(TEXT, URL, activity_id),
+        reply_markup=ActivityFormatter.format_keyboard(TEXT),
     )
     return "activity_view"
 
@@ -313,9 +313,9 @@ async def change_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     activity = await strava.get_activity(access_token, activity_id)
 
     await update.callback_query.edit_message_text(
-        ActivityFormatter.format_data(TEXT["reply_activity_updated"], activity),
+        ActivityFormatter.format_data(TEXT["reply_activity_updated"], URL["activity"], activity),
         constants.ParseMode.MARKDOWN,
-        reply_markup=ActivityFormatter.format_keyboard(TEXT, URL, activity_id),
+        reply_markup=ActivityFormatter.format_keyboard(TEXT),
     )
     return "activity_view"
 
@@ -329,9 +329,9 @@ async def change_gear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     activity = await strava.get_activity(access_token, activity_id)
 
     await update.callback_query.edit_message_text(
-        ActivityFormatter.format_data(TEXT["reply_activity_updated"], activity),
+        ActivityFormatter.format_data(TEXT["reply_activity_updated"], URL["activity"], activity),
         constants.ParseMode.MARKDOWN,
-        reply_markup=ActivityFormatter.format_keyboard(TEXT, URL, activity_id),
+        reply_markup=ActivityFormatter.format_keyboard(TEXT),
     )
     return "activity_view"
 

@@ -83,6 +83,7 @@ async def get_activity(access_token: str, activity_id: str) -> dict:
     distance = round(distance_meters / 1000, 3)
 
     normalized_activity = {
+        "id": str(response_data["id"]),
         "name": str(response_data["name"]),
         "sport_type": str(response_data["sport_type"]),
         "moving_time": moving_time,
