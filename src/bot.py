@@ -28,6 +28,37 @@ USER_DB = TinyDB(os.path.join(os.path.dirname(__file__), "..", "storage", "userd
 USER_QUERY = Query()
 
 
+class ActivityKeyboardMarkup(InlineKeyboardMarkup):
+    def __init__(self, key_dict: dict, url_dict: dict, activity_id: str) -> None:
+        super().__init__(
+            [
+                [
+                    InlineKeyboardButton(key_dict["key_list"], callback_data="list"),
+                ],
+                [
+                    InlineKeyboardButton(key_dict["key_chname"], callback_data="chname"),
+                    InlineKeyboardButton(key_dict["key_chdesc"], callback_data="chdesc"),
+                ],
+                [
+                    InlineKeyboardButton(key_dict["key_chtype"], callback_data="chtype"),
+                    InlineKeyboardButton(key_dict["key_chgear"], callback_data="chgear"),
+                ],
+                [
+                    InlineKeyboardButton(key_dict["key_openstrava"], url_dict["activity"].format(activity_id)),
+                ],
+            ]
+        )
+
+
+class ActivityPrint:
+    def __init__(self, text_dict: dict, activity: dict) -> None:
+        self = (
+            text_dict["reply_activityview"].format(
+                activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
+            ),
+        )
+
+
 # /start; регистрация
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.message.from_user.id)
@@ -134,32 +165,12 @@ async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     activity_id = update.callback_query.data
     context.user_data["activity_id"] = activity_id
     access_token = context.user_data["access_token"]
-
-    inline_keyboard = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton(TEXT["key_list"], callback_data="list"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_chname"], callback_data="chname"),
-                InlineKeyboardButton(TEXT["key_chdesc"], callback_data="chdesc"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_chtype"], callback_data="chtype"),
-                InlineKeyboardButton(TEXT["key_chgear"], callback_data="chgear"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_openstrava"], url=URL["activity"].format(activity_id)),
-            ],
-        ]
-    )
     activity = await strava.get_activity(access_token, activity_id)
+
     await update.callback_query.edit_message_text(
-        TEXT["reply_activityview"].format(
-            activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
-        ),
+        ActivityPrint(TEXT, activity),
         constants.ParseMode.MARKDOWN,
-        reply_markup=inline_keyboard,
+        ActivityKeyboardMarkup(TEXT, URL, activity_id),
     )
     return "activity_view"
 
@@ -189,31 +200,12 @@ async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["activity_id"] = activity_id
 
     if activity_id:
-        inline_keyboard = InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton(TEXT["key_list"], callback_data="list"),
-                ],
-                [
-                    InlineKeyboardButton(TEXT["key_chname"], callback_data="chname"),
-                    InlineKeyboardButton(TEXT["key_chdesc"], callback_data="chdesc"),
-                ],
-                [
-                    InlineKeyboardButton(TEXT["key_chtype"], callback_data="chtype"),
-                    InlineKeyboardButton(TEXT["key_chgear"], callback_data="chgear"),
-                ],
-                [
-                    InlineKeyboardButton(TEXT["key_openstrava"], url=URL["activity"].format(activity_id)),
-                ],
-            ]
-        )
         activity = await strava.get_activity(access_token, activity_id)
+
         await update.message.reply_text(
-            TEXT["reply_activityuploaded"].format(
-                activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
-            ),
+            ActivityPrint(TEXT, activity),
             constants.ParseMode.MARKDOWN,
-            reply_markup=inline_keyboard,
+            ActivityKeyboardMarkup(TEXT, URL, activity_id),
         )
         return "activity_view"
     else:
@@ -291,32 +283,12 @@ async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     activity_id = context.user_data["activity_id"]
     name = update.message.text
     await strava.update_activity(access_token, activity_id, name=name)
-
     activity = await strava.get_activity(access_token, activity_id)
-    inline_keyboard = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton(TEXT["key_list"], callback_data="list"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_chname"], callback_data="chname"),
-                InlineKeyboardButton(TEXT["key_chdesc"], callback_data="chdesc"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_chtype"], callback_data="chtype"),
-                InlineKeyboardButton(TEXT["key_chgear"], callback_data="chgear"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_openstrava"], url=URL["activity"].format(activity_id)),
-            ],
-        ]
-    )
+
     await update.message.reply_text(
-        TEXT["reply_activityupdated"].format(
-            activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
-        ),
+        ActivityPrint(TEXT, activity),
         constants.ParseMode.MARKDOWN,
-        reply_markup=inline_keyboard,
+        ActivityKeyboardMarkup(TEXT, URL, activity_id),
     )
     return "activity_view"
 
@@ -326,32 +298,12 @@ async def change_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     activity_id = context.user_data["activity_id"]
     description = update.message.text
     await strava.update_activity(access_token, activity_id, description=description)
-
     activity = await strava.get_activity(access_token, activity_id)
-    inline_keyboard = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton(TEXT["key_list"], callback_data="list"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_chname"], callback_data="chname"),
-                InlineKeyboardButton(TEXT["key_chdesc"], callback_data="chdesc"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_chtype"], callback_data="chtype"),
-                InlineKeyboardButton(TEXT["key_chgear"], callback_data="chgear"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_openstrava"], url=URL["activity"].format(activity_id)),
-            ],
-        ]
-    )
+
     await update.message.reply_text(
-        TEXT["reply_activityupdated"].format(
-            activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
-        ),
+        ActivityPrint(TEXT, activity),
         constants.ParseMode.MARKDOWN,
-        reply_markup=inline_keyboard,
+        ActivityKeyboardMarkup(TEXT, URL, activity_id),
     )
     return "activity_view"
 
@@ -362,32 +314,12 @@ async def change_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     activity_id = context.user_data["activity_id"]
     sport_type = update.callback_query.data
     await strava.update_activity(access_token, activity_id, sport_type=sport_type)
-
     activity = await strava.get_activity(access_token, activity_id)
-    inline_keyboard = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton(TEXT["key_list"], callback_data="list"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_chname"], callback_data="chname"),
-                InlineKeyboardButton(TEXT["key_chdesc"], callback_data="chdesc"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_chtype"], callback_data="chtype"),
-                InlineKeyboardButton(TEXT["key_chgear"], callback_data="chgear"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_openstrava"], url=URL["activity"].format(activity_id)),
-            ],
-        ]
-    )
+
     await update.callback_query.edit_message_text(
-        TEXT["reply_activityupdated"].format(
-            activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
-        ),
+        ActivityPrint(TEXT, activity),
         constants.ParseMode.MARKDOWN,
-        reply_markup=inline_keyboard,
+        ActivityKeyboardMarkup(TEXT, URL, activity_id),
     )
     return "activity_view"
 
@@ -398,32 +330,13 @@ async def change_gear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     activity_id = context.user_data["activity_id"]
     gear_id = update.callback_query.data
     await strava.update_activity(access_token, activity_id, gear_id=gear_id)
-
     activity = await strava.get_activity(access_token, activity_id)
-    inline_keyboard = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton(TEXT["key_list"], callback_data="list"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_chname"], callback_data="chname"),
-                InlineKeyboardButton(TEXT["key_chdesc"], callback_data="chdesc"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_chtype"], callback_data="chtype"),
-                InlineKeyboardButton(TEXT["key_chgear"], callback_data="chgear"),
-            ],
-            [
-                InlineKeyboardButton(TEXT["key_openstrava"], url=URL["activity"].format(activity_id)),
-            ],
-        ]
-    )
+
+    inline_keyboard = ActivityKeyboardMarkup(TEXT, URL, activity_id)
     await update.callback_query.edit_message_text(
-        TEXT["reply_activityupdated"].format(
-            activity["name"], activity["sport_type"], activity["moving_time"], activity["distance"], activity["gear"], activity["description"]
-        ),
+        ActivityPrint(TEXT, activity),
         constants.ParseMode.MARKDOWN,
-        reply_markup=inline_keyboard,
+        ActivityKeyboardMarkup(TEXT, URL, activity_id),
     )
     return "activity_view"
 
