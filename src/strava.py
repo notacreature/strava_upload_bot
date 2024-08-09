@@ -96,7 +96,7 @@ async def get_activity(access_token: str, activity_id: str) -> dict:
     return normalized_activity
 
 
-async def get_activity_list(access_token: str, per_page: int) -> list:
+async def get_activities(access_token: str, per_page: int) -> list:
     url = "https://www.strava.com/api/v3/athlete/activities"
     params = {
         "per_page": per_page,

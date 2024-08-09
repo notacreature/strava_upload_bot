@@ -41,15 +41,15 @@ class ActivityFormatter:
         return InlineKeyboardMarkup(
             [
                 [
-                    InlineKeyboardButton(keys["key_chname"], callback_data="chname"),
-                    InlineKeyboardButton(keys["key_chdesc"], callback_data="chdesc"),
+                    InlineKeyboardButton(keys["key_change_name"], callback_data="Chname"),
+                    InlineKeyboardButton(keys["key_change_desc"], callback_data="Chdesc"),
                 ],
                 [
-                    InlineKeyboardButton(keys["key_chtype"], callback_data="chtype"),
-                    InlineKeyboardButton(keys["key_chgear"], callback_data="chgear"),
+                    InlineKeyboardButton(keys["key_change_type"], callback_data="Chtype"),
+                    InlineKeyboardButton(keys["key_change_gear"], callback_data="Chgear"),
                 ],
                 [
-                    InlineKeyboardButton(keys["key_list"], callback_data="list"),
+                    InlineKeyboardButton(keys["key_activities"], callback_data="List"),
                 ],
             ]
         )
@@ -95,7 +95,7 @@ async def delete_user_data_dialog(update: Update, context: ContextTypes.DEFAULT_
             TEXT["reply_delete"],
             constants.ParseMode.MARKDOWN,
         )
-        return "user_data_delete"
+        return "delete_dialog"
 
 
 async def delete_user_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -112,7 +112,7 @@ async def delete_user_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Список последних тренировок
-async def view_activity_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def show_activities(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
         user_id = str(update.message.from_user.id)
     elif update.callback_query:
@@ -130,7 +130,7 @@ async def view_activity_list(update: Update, context: ContextTypes.DEFAULT_TYPE)
     access_token = await strava.get_access_token(user_id, CLIENT_ID, CLIENT_SECRET, refresh_token, USER_DB, USER_QUERY)
     context.user_data["access_token"] = access_token
 
-    activity_list = await strava.get_activity_list(access_token, 3)
+    activity_list = await strava.get_activities(access_token, 3)
     inline_keys = []
     for activity in activity_list:
         inline_keys.append(
@@ -140,31 +140,31 @@ async def view_activity_list(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
     inline_keys.append(
         [
-            InlineKeyboardButton("🔄️", callback_data="updlist"),
+            InlineKeyboardButton("key_refresh", callback_data="Refresh"),
         ]
     )
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
 
     if update.message:
         await update.message.reply_text(
-            TEXT["reply_list_view"],
+            TEXT["reply_activities_shown"],
             constants.ParseMode.MARKDOWN,
             reply_markup=inline_keyboard,
         )
     elif update.callback_query:
         await update.callback_query.edit_message_text(
-            TEXT["reply_list_view"],
+            TEXT["reply_activities_shown"],
             constants.ParseMode.MARKDOWN,
             reply_markup=inline_keyboard,
         )
 
-    return "activity_list_view"
+    return "activities_shown"
 
 
-async def update_activity_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def refresh_activities(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     access_token = context.user_data["access_token"]
-    activity_list = await strava.get_activity_list(access_token, 3)
+    activity_list = await strava.get_activities(access_token, 3)
     inline_keys = []
     for activity in activity_list:
         inline_keys.append(
@@ -174,17 +174,17 @@ async def update_activity_list(update: Update, context: ContextTypes.DEFAULT_TYP
         )
     inline_keys.append(
         [
-            InlineKeyboardButton("🔄️", callback_data="updlist"),
+            InlineKeyboardButton("key_refresh", callback_data="Refresh"),
         ]
     )
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
 
     await update.callback_query.edit_message_reply_markup(reply_markup=None)
     await update.callback_query.edit_message_reply_markup(reply_markup=inline_keyboard)
-    return "activity_list_view"
+    return "activities_shown"
 
 
-async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def show_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     activity_id = update.callback_query.data
     context.user_data["activity_id"] = activity_id
@@ -192,11 +192,11 @@ async def view_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     activity = await strava.get_activity(access_token, activity_id)
 
     await update.callback_query.edit_message_text(
-        ActivityFormatter.format_data(TEXT["reply_activity_view"], URL["activity"], activity),
+        ActivityFormatter.format_data(TEXT["reply_activity_shown"], URL["activity"], activity),
         constants.ParseMode.MARKDOWN,
         reply_markup=ActivityFormatter.format_keyboard(TEXT),
     )
-    return "activity_view"
+    return "activity_shown"
 
 
 # Публикация тренировки
@@ -230,7 +230,7 @@ async def upload_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
             constants.ParseMode.MARKDOWN,
             reply_markup=ActivityFormatter.format_keyboard(TEXT),
         )
-        return "activity_view"
+        return "activity_shown"
     else:
         await update.message.reply_text(
             TEXT["reply_error"].format(str(upload["error"])),
@@ -245,10 +245,10 @@ async def change_name_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = str(update.callback_query.from_user.id)
     await context.bot.send_message(
         user_id,
-        TEXT["reply_chname"],
+        TEXT["reply_change_name"],
         constants.ParseMode.MARKDOWN,
     )
-    return "name_change"
+    return "change_name_dialog"
 
 
 async def change_desc_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -256,10 +256,10 @@ async def change_desc_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = str(update.callback_query.from_user.id)
     await context.bot.send_message(
         user_id,
-        TEXT["reply_chdesc"],
+        TEXT["reply_change_desc"],
         constants.ParseMode.MARKDOWN,
     )
-    return "desc_change"
+    return "change_desc_dialog"
 
 
 async def change_type_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -274,11 +274,11 @@ async def change_type_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE)
         ]
     )
     await update.callback_query.edit_message_text(
-        TEXT["reply_chtype"],
+        TEXT["reply_change_type"],
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
     )
-    return "type_change"
+    return "change_type_dialog"
 
 
 async def change_gear_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -294,11 +294,11 @@ async def change_gear_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
     await update.callback_query.edit_message_text(
-        TEXT["reply_chgear"],
+        TEXT["reply_change_gear"],
         constants.ParseMode.MARKDOWN,
         reply_markup=inline_keyboard,
     )
-    return "gear_change"
+    return "change_gear_dialog"
 
 
 async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -313,7 +313,7 @@ async def change_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         constants.ParseMode.MARKDOWN,
         reply_markup=ActivityFormatter.format_keyboard(TEXT),
     )
-    return "activity_view"
+    return "activity_shown"
 
 
 async def change_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -328,7 +328,7 @@ async def change_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
         constants.ParseMode.MARKDOWN,
         reply_markup=ActivityFormatter.format_keyboard(TEXT),
     )
-    return "activity_view"
+    return "activity_shown"
 
 
 async def change_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -344,7 +344,7 @@ async def change_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
         constants.ParseMode.MARKDOWN,
         reply_markup=ActivityFormatter.format_keyboard(TEXT),
     )
-    return "activity_view"
+    return "activity_shown"
 
 
 async def change_gear(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -360,7 +360,7 @@ async def change_gear(update: Update, context: ContextTypes.DEFAULT_TYPE):
         constants.ParseMode.MARKDOWN,
         reply_markup=ActivityFormatter.format_keyboard(TEXT),
     )
-    return "activity_view"
+    return "activity_shown"
 
 
 # /help; справка
@@ -394,7 +394,7 @@ def main():
     application = ApplicationBuilder().token(TOKEN).build()
 
     delete_entry = CommandHandler("delete", delete_user_data_dialog)
-    list_entry = CommandHandler("list", view_activity_list)
+    list_entry = CommandHandler("activities", show_activities)
     file_entry = MessageHandler(
         filters.Document.FileExtension("fit") | filters.Document.FileExtension("tcx") | filters.Document.FileExtension("gpx"), upload_activity
     )
@@ -411,21 +411,21 @@ def main():
             file_entry,
         ],
         states={
-            "activity_list_view": [
-                CallbackQueryHandler(view_activity, pattern="^\\d+$"),
-                CallbackQueryHandler(update_activity_list, pattern="updlist"),
+            "activities_shown": [
+                CallbackQueryHandler(show_activity, pattern="^\\d+$"),
+                CallbackQueryHandler(refresh_activities, pattern="Refresh"),
             ],
-            "activity_view": [
-                CallbackQueryHandler(view_activity_list, pattern="list"),
-                CallbackQueryHandler(change_name_dialog, pattern="chname"),
-                CallbackQueryHandler(change_desc_dialog, pattern="chdesc"),
-                CallbackQueryHandler(change_type_dialog, pattern="chtype"),
-                CallbackQueryHandler(change_gear_dialog, pattern="chgear"),
+            "activity_shown": [
+                CallbackQueryHandler(show_activities, pattern="List"),
+                CallbackQueryHandler(change_name_dialog, pattern="Chname"),
+                CallbackQueryHandler(change_desc_dialog, pattern="Chdesc"),
+                CallbackQueryHandler(change_type_dialog, pattern="Chtype"),
+                CallbackQueryHandler(change_gear_dialog, pattern="Chgear"),
             ],
-            "name_change": [MessageHandler(~filters.COMMAND & filters.TEXT, change_name)],
-            "desc_change": [MessageHandler(~filters.COMMAND & filters.TEXT, change_desc)],
-            "type_change": [CallbackQueryHandler(change_type, pattern="Swim|Ride|Run")],
-            "gear_change": [CallbackQueryHandler(change_gear, pattern="^\\w\\d+$")],
+            "change_name_dialog": [MessageHandler(~filters.COMMAND & filters.TEXT, change_name)],
+            "change_desc_dialog": [MessageHandler(~filters.COMMAND & filters.TEXT, change_desc)],
+            "change_type_dialog": [CallbackQueryHandler(change_type, pattern="Swim|Ride|Run")],
+            "change_gear_dialog": [CallbackQueryHandler(change_gear, pattern="^\\w\\d+$")],
         },
         fallbacks=[
             cancel_fallback,
@@ -437,7 +437,7 @@ def main():
 
     delete_dialog = ConversationHandler(
         entry_points=[delete_entry],
-        states={"user_data_delete": [CommandHandler("delete", delete_user_data)]},
+        states={"delete_dialog": [CommandHandler("delete", delete_user_data)]},
         fallbacks=[
             cancel_fallback,
             list_entry,
