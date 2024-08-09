@@ -138,6 +138,11 @@ async def view_activity_list(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 InlineKeyboardButton(TEXT["key_activity"].format(activity["name"], activity["date"]), callback_data=activity["id"]),
             ]
         )
+    inline_keys.append(
+        [
+            InlineKeyboardButton("🔄️", callback_data="updlist"),
+        ]
+    )
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
 
     if update.message:
@@ -153,6 +158,29 @@ async def view_activity_list(update: Update, context: ContextTypes.DEFAULT_TYPE)
             reply_markup=inline_keyboard,
         )
 
+    return "activity_list_view"
+
+
+async def update_activity_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.answer()
+    access_token = context.user_data["access_token"]
+    activity_list = await strava.get_activity_list(access_token, 3)
+    inline_keys = []
+    for activity in activity_list:
+        inline_keys.append(
+            [
+                InlineKeyboardButton(TEXT["key_activity"].format(activity["name"], activity["date"]), callback_data=activity["id"]),
+            ]
+        )
+    inline_keys.append(
+        [
+            InlineKeyboardButton("🔄️", callback_data="updlist"),
+        ]
+    )
+    inline_keyboard = InlineKeyboardMarkup(inline_keys)
+
+    await update.callback_query.edit_message_reply_markup(reply_markup=None)
+    await update.callback_query.edit_message_reply_markup(reply_markup=inline_keyboard)
     return "activity_list_view"
 
 
@@ -383,7 +411,10 @@ def main():
             file_entry,
         ],
         states={
-            "activity_list_view": [CallbackQueryHandler(view_activity, pattern="^\\d+$")],
+            "activity_list_view": [
+                CallbackQueryHandler(view_activity, pattern="^\\d+$"),
+                CallbackQueryHandler(update_activity_list, pattern="updlist"),
+            ],
             "activity_view": [
                 CallbackQueryHandler(view_activity_list, pattern="list"),
                 CallbackQueryHandler(change_name_dialog, pattern="chname"),
