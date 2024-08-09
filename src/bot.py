@@ -92,7 +92,7 @@ async def delete_user_data_dialog(update: Update, context: ContextTypes.DEFAULT_
         return ConversationHandler.END
     else:
         await update.message.reply_text(
-            TEXT["reply_delete"],
+            TEXT["reply_delete_dialog"],
             constants.ParseMode.MARKDOWN,
         )
         return "delete_dialog"
@@ -140,7 +140,7 @@ async def show_activities(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     inline_keys.append(
         [
-            InlineKeyboardButton("key_refresh", callback_data="Refresh"),
+            InlineKeyboardButton(TEXT["key_refresh"], callback_data="Refresh"),
         ]
     )
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
@@ -174,7 +174,7 @@ async def refresh_activities(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
     inline_keys.append(
         [
-            InlineKeyboardButton("key_refresh", callback_data="Refresh"),
+            InlineKeyboardButton(TEXT["key_refresh"], callback_data="Refresh"),
         ]
     )
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
