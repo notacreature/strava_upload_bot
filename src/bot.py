@@ -129,20 +129,11 @@ async def show_activities(update: Update, context: ContextTypes.DEFAULT_TYPE):
     refresh_token = USER_DB.get(USER_QUERY["user_id"] == user_id)["refresh_token"]
     access_token = await strava.get_access_token(user_id, CLIENT_ID, CLIENT_SECRET, refresh_token, USER_DB, USER_QUERY)
     context.user_data["access_token"] = access_token
-
     activity_list = await strava.get_activities(access_token, 3)
-    inline_keys = []
+
+    inline_keys = [[InlineKeyboardButton(TEXT["key_refresh"], callback_data="Refresh")]]
     for activity in activity_list:
-        inline_keys.append(
-            [
-                InlineKeyboardButton(TEXT["key_activity"].format(activity["name"], activity["date"]), callback_data=activity["id"]),
-            ]
-        )
-    inline_keys.append(
-        [
-            InlineKeyboardButton(TEXT["key_refresh"], callback_data="Refresh"),
-        ]
-    )
+        inline_keys.insert(-1, [InlineKeyboardButton(TEXT["key_activity"].format(activity["name"], activity["date"]), callback_data=activity["id"])])
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
 
     if update.message:
@@ -165,18 +156,10 @@ async def refresh_activities(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update.callback_query.answer()
     access_token = context.user_data["access_token"]
     activity_list = await strava.get_activities(access_token, 3)
-    inline_keys = []
+
+    inline_keys = [[InlineKeyboardButton(TEXT["key_refresh"], callback_data="Refresh")]]
     for activity in activity_list:
-        inline_keys.append(
-            [
-                InlineKeyboardButton(TEXT["key_activity"].format(activity["name"], activity["date"]), callback_data=activity["id"]),
-            ]
-        )
-    inline_keys.append(
-        [
-            InlineKeyboardButton(TEXT["key_refresh"], callback_data="Refresh"),
-        ]
-    )
+        inline_keys.insert(-1, [InlineKeyboardButton(TEXT["key_activity"].format(activity["name"], activity["date"]), callback_data=activity["id"])])
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
 
     await update.callback_query.edit_message_reply_markup(reply_markup=None)
@@ -436,8 +419,12 @@ def main():
     )
 
     delete_dialog = ConversationHandler(
-        entry_points=[delete_entry],
-        states={"delete_dialog": [CommandHandler("delete", delete_user_data)]},
+        entry_points=[
+            delete_entry,
+        ],
+        states={
+            "delete_dialog": [CommandHandler("delete", delete_user_data)],
+        },
         fallbacks=[
             cancel_fallback,
             list_entry,
