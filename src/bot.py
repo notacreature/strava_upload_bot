@@ -26,6 +26,7 @@ SCOPE = CONFIG["Strava"]["SCOPE"]
 REDIRECT_URL = CONFIG["Server"]["URL"]
 USER_DB = TinyDB(os.path.join(os.path.dirname(__file__), "..", "storage", "userdata.json"))
 USER_QUERY = Query()
+PER_PAGE = 4
 
 
 class ActivityFormatter:
@@ -129,9 +130,16 @@ async def show_activities(update: Update, context: ContextTypes.DEFAULT_TYPE):
     refresh_token = USER_DB.get(USER_QUERY["user_id"] == user_id)["refresh_token"]
     access_token = await strava.get_access_token(user_id, CLIENT_ID, CLIENT_SECRET, refresh_token, USER_DB, USER_QUERY)
     context.user_data["access_token"] = access_token
-    activity_list = await strava.get_activities(access_token, 3)
+    page = context.user_data["page"] = 1
+    activity_list = await strava.get_activities(access_token, page, PER_PAGE)
 
-    inline_keys = [[InlineKeyboardButton(TEXT["key_refresh"], callback_data="Refresh")]]
+    inline_keys = [
+        [
+            InlineKeyboardButton(TEXT["key_prev"], callback_data="PrevPage"),
+            InlineKeyboardButton(TEXT["key_refresh"], callback_data="Refresh"),
+            InlineKeyboardButton(TEXT["key_next"], callback_data="NextPage"),
+        ]
+    ]
     for activity in activity_list:
         inline_keys.insert(-1, [InlineKeyboardButton(TEXT["key_activity"].format(activity["name"], activity["date"]), callback_data=activity["id"])])
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
@@ -155,9 +163,62 @@ async def show_activities(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def refresh_activities(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     access_token = context.user_data["access_token"]
-    activity_list = await strava.get_activities(access_token, 3)
+    page = context.user_data["page"] = 1
+    activity_list = await strava.get_activities(access_token, page, PER_PAGE)
 
-    inline_keys = [[InlineKeyboardButton(TEXT["key_refresh"], callback_data="Refresh")]]
+    inline_keys = [
+        [
+            InlineKeyboardButton(TEXT["key_prev"], callback_data="PrevPage"),
+            InlineKeyboardButton(TEXT["key_refresh"], callback_data="Refresh"),
+            InlineKeyboardButton(TEXT["key_next"], callback_data="NextPage"),
+        ]
+    ]
+    for activity in activity_list:
+        inline_keys.insert(-1, [InlineKeyboardButton(TEXT["key_activity"].format(activity["name"], activity["date"]), callback_data=activity["id"])])
+    inline_keyboard = InlineKeyboardMarkup(inline_keys)
+
+    await update.callback_query.edit_message_reply_markup(reply_markup=None)
+    await update.callback_query.edit_message_reply_markup(reply_markup=inline_keyboard)
+    return "activities_shown"
+
+
+async def show_next_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.answer()
+    access_token = context.user_data["access_token"]
+    page = context.user_data["page"]
+    page = context.user_data["page"] = page + 1
+    activity_list = await strava.get_activities(access_token, page, PER_PAGE)
+
+    inline_keys = [
+        [
+            InlineKeyboardButton(TEXT["key_prev"], callback_data="PrevPage"),
+            InlineKeyboardButton(TEXT["key_refresh"], callback_data="Refresh"),
+            InlineKeyboardButton(TEXT["key_next"], callback_data="NextPage"),
+        ]
+    ]
+    for activity in activity_list:
+        inline_keys.insert(-1, [InlineKeyboardButton(TEXT["key_activity"].format(activity["name"], activity["date"]), callback_data=activity["id"])])
+    inline_keyboard = InlineKeyboardMarkup(inline_keys)
+
+    await update.callback_query.edit_message_reply_markup(reply_markup=None)
+    await update.callback_query.edit_message_reply_markup(reply_markup=inline_keyboard)
+    return "activities_shown"
+
+
+async def show_prev_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.answer()
+    access_token = context.user_data["access_token"]
+    page = context.user_data["page"]
+    page = context.user_data["page"] = page - 1 if page > 1 else 1
+    activity_list = await strava.get_activities(access_token, page, PER_PAGE)
+
+    inline_keys = [
+        [
+            InlineKeyboardButton(TEXT["key_prev"], callback_data="PrevPage"),
+            InlineKeyboardButton(TEXT["key_refresh"], callback_data="Refresh"),
+            InlineKeyboardButton(TEXT["key_next"], callback_data="NextPage"),
+        ]
+    ]
     for activity in activity_list:
         inline_keys.insert(-1, [InlineKeyboardButton(TEXT["key_activity"].format(activity["name"], activity["date"]), callback_data=activity["id"])])
     inline_keyboard = InlineKeyboardMarkup(inline_keys)
@@ -397,6 +458,8 @@ def main():
             "activities_shown": [
                 CallbackQueryHandler(show_activity, pattern="^\\d+$"),
                 CallbackQueryHandler(refresh_activities, pattern="Refresh"),
+                CallbackQueryHandler(show_next_page, pattern="NextPage"),
+                CallbackQueryHandler(show_prev_page, pattern="PrevPage"),
             ],
             "activity_shown": [
                 CallbackQueryHandler(show_activities, pattern="List"),
